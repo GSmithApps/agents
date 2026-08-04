@@ -20,7 +20,8 @@
 		"vscode": {
 			"extensions": [
 				// "ms-python.python",
-				"anthropic.claude-code"
+				"anthropic.claude-code",
+				"tamasfe.even-better-toml"
 			]
 		}
 	},
