@@ -577,6 +577,9 @@ class AMD(EventEmitter[Literal["amd_prediction"]]):
             _llm = _InferenceLLM(self._llm_config)
         elif isinstance(self._llm_config, _LLM):
             _llm = self._llm_config
+        # falls back to the session-level llm rather than the running agent's resolved
+        # one: AMD is session-scoped, so which agent happens to hold the floor should not
+        # change the classifier. An agent-level `llm=` override is intentionally ignored.
         elif (candidate := session.llm) and isinstance(candidate, _LLM):
             _llm = candidate
 

@@ -82,6 +82,21 @@ class VAD(agents.vad.VAD):
             This method is blocking and may take time to load the model into memory.
             It is recommended to call this method inside your prewarm mechanism.
 
+            Never call it inline in your entrypoint (e.g. ``AgentSession(vad=silero.VAD.load())``):
+            that pays the ONNX load inside the job, while the caller is already connected.
+
+        **See also:**
+            ``livekit.agents.inference.VAD(model="silero")`` runs the same model through
+            ``livekit-local-inference`` instead of ``onnxruntime``. Its weights load at
+            import and are shared across job processes via copy-on-write, so it needs no
+            prewarming at all, and it is what ``AgentSession`` uses when ``vad`` is
+            omitted. Prefer it unless you need ``onnx_file_path`` to pin a model version
+            or ``sample_rate=8000``, which it does not expose.
+
+            Note that ``inference.VAD`` defaults ``min_silence_duration`` to 0.25 versus
+            0.55 here, so pass the value explicitly if you switch and want to keep the
+            current endpointing behavior.
+
         **Example:**
 
             ```python

@@ -141,9 +141,19 @@ class TaskGroup(AgentTask[TaskGroupResult]):
 
         if self._summarize_chat_ctx:
             try:
-                assert isinstance(self.session.llm, llm.LLM), (
-                    "llm must be a LLM instance to summarize the chat_ctx"
-                )
+                # NOTE: reads `session.llm`, not the running agent's resolved llm, so an
+                # agent-level override is ignored here. Summarization is session-scoped,
+                # so that is arguably right — but it means an app that only sets `llm` on
+                # its agents raises below rather than summarizing.
+                summarize_llm = self.session.llm
+                if not isinstance(summarize_llm, llm.LLM):
+                    # not an assert: this validates user configuration, and `python -O`
+                    # would strip the check and fail more obscurely inside `_summarize`
+                    raise RuntimeError(
+                        "llm must be a LLM instance to summarize the chat_ctx, got "
+                        f"{type(summarize_llm).__name__}. Set `llm=` on the AgentSession "
+                        "(an agent-level llm is not used for summarization)."
+                    )
 
                 # when a task is done, the chat_ctx is going to be merged with the "caller" chat_ctx
                 # enabling summarization will result on only one ChatMessage added.
@@ -154,7 +164,7 @@ class TaskGroup(AgentTask[TaskGroupResult]):
                     exclude_config_update=False,
                     exclude_empty_message=False,
                     exclude_function_call=False,
-                )._summarize(llm_v=self.session.llm, keep_last_turns=0)
+                )._summarize(llm_v=summarize_llm, keep_last_turns=0)
 
                 await self.update_chat_ctx(summarized_chat_ctx)
             except Exception as e:

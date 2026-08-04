@@ -56,6 +56,18 @@ class VAD(vad.VAD):
     pybind11 ``.so`` constructor); each stream allocates its own per-instance
     LSTM/context state. Pass ``executor`` to isolate inference from the event
     loop's default executor; the caller remains responsible for shutting it down.
+
+    This runs entirely in-process — unlike ``inference.LLM``/``STT``/``TTS``, it
+    makes no gateway requests. Because the weights load at import (and are paged
+    into the forkserver by ``inference._warmup`` so job processes inherit them
+    via COW), no ``AgentServer.setup_fnc`` prewarming is needed. Prefer this over
+    ``livekit-plugins-silero``, which builds a per-process ``onnxruntime``
+    session; reach for that plugin only when you need ``onnx_file_path`` to pin a
+    model version or ``sample_rate=8000``.
+
+    NOTE: ``min_silence_duration`` defaults to 0.25 here but 0.55 in
+    ``silero.VAD.load()``, so switching changes endpointing latency. See the
+    comment on that parameter below before relying on either default.
     """
 
     def __init__(
@@ -63,6 +75,12 @@ class VAD(vad.VAD):
         *,
         model: VADModels = "silero",
         min_speech_duration: float = 0.05,
+        # NOTE: diverges from `silero.VAD.load()`, which defaults to 0.55. This value
+        # arrived with the audio-EOT work (#4722) and has not been reconciled with the
+        # silero default; note that lowering silero's to 0.4 (#2953) was reverted (#3416).
+        # Since `AgentSession` defaults to this class, it sets out-of-box endpointing
+        # feel. Unclear whether the divergence is intentional (audio EOT carries more of
+        # the endpointing decision here) — resolve before treating either as canonical.
         min_silence_duration: float = 0.25,
         prefix_padding_duration: float = 0.5,
         max_buffered_speech: float = 60.0,
