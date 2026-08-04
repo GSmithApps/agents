@@ -21,6 +21,9 @@
 			"extensions": [
 				// "ms-python.python",
 				"anthropic.claude-code",
+				"tamasfe.even-better-toml",
+				"mhutchie.git-graph",
+				"eamodio.gitlens",
 				"tamasfe.even-better-toml"
 			]
 		}
